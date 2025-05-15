@@ -20,19 +20,85 @@ wss.on("connection", (ws) => {
   });
 });
 
-app.post("/broadcast", (req, res) => {
-  const { user } = req.body;
-  const data = JSON.stringify({ type: "NEW_USER", payload: user });
-  console.log("Broadcasting to clients:", data);
+app.post("/mail", (req, res) => {
+  const { payload, type } = req.body;
+  let data;
 
-  clients.forEach((client) => {
-    if (client.readyState === WebSocket.OPEN) {
-      client.send(data);
-    }
-  });
+  switch (type) {
+    case "SEND_EMAIL":
+      data = JSON.stringify({ type: "SEND_EMAIL", payload });
+
+      console.log("Sending email data to client:", data.substring(0, 15) );
+      clients.forEach((client) => {
+        if (client.readyState === WebSocket.OPEN) {
+          client.send(data);
+        }
+      });
+      break;
+    // default:
+      break;
+  }
+
+  // clients.forEach((client) => {
+  //   if (client.readyState === WebSocket.OPEN) {
+  //     client.send(data);
+  //   }
+  // });
+
+  res.json({ success: true });
+});
+
+let idx = 0;
+
+app.post("/data", (req, res) => {
+  const { payload, type } = req.body;
+  // console.log({payload, type})
+  // const data = JSON.stringify({ type: "NEW_AUTHOR", payload: user });
+  let data;
+
+  switch (type) {
+    case "NEW_USER":
+      data = JSON.stringify({ type: "NEW_USER", payload });
+
+      console.log("Broadcasting database data to client:", data.substring(0, 15) );
+      clients.forEach((client) => {
+        if (client.readyState === WebSocket.OPEN) {
+          client.send(data);
+        }
+      });
+      break;
+    case "NEW_AUTHOR":
+      data = JSON.stringify({ type: "NEW_AUTHOR", payload });
+
+      console.log("Broadcasting database data to client:", data.substring(0, 15) );
+      clients.forEach((client) => {
+        if (client.readyState === WebSocket.OPEN) {
+          client.send(data);
+        }
+      });
+      break;
+    case "UPDATE_AUTHOR":
+      idx= idx+1;
+      data = JSON.stringify({ id: idx,type: "UPDATE_AUTHOR", payload });
+
+      console.log("Broadcasting database data to client:", data.substring(0, 100) );
+      clients.forEach((client) => {
+        if (client.readyState === WebSocket.OPEN) {
+          client.send(data);
+        }
+      });
+    // default:
+      break;
+  }
+
+  // clients.forEach((client) => {
+  //   if (client.readyState === WebSocket.OPEN) {
+  //     client.send(data);
+  //   }
+  // });
 
   res.json({ success: true });
 });
 
 const PORT = process.env.PORT || 3001;
-server.listen(PORT, () => console.log(`WebSocket server running on port ${PORT}`));
+server.listen(PORT, () => console.log(`WebSocket server running on port ${PORT}`))
