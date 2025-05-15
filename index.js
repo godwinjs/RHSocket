@@ -20,13 +20,13 @@ wss.on("connection", (ws) => {
   });
 });
 
-app.post("/mail", (req, res) => {
+app.post("/message", (req, res) => {
   const { payload, type } = req.body;
   let data;
 
   switch (type) {
-    case "SEND_EMAIL":
-      data = JSON.stringify({ type: "SEND_EMAIL", payload });
+    case "SEND_MAIL":
+      data = JSON.stringify({ type: "SEND_MAIL", payload });
 
       console.log("Sending email data to client:", data.substring(0, 15) );
       clients.forEach((client) => {
@@ -57,10 +57,43 @@ app.post("/data", (req, res) => {
   let data;
 
   switch (type) {
+    
+    case "NEW_BOOK":
+      data = JSON.stringify({ type: "NEW_BOOK", payload });
+
+      console.log("Broadcasting database new book data to client:", payload.name, payload.id );
+      clients.forEach((client) => {
+        if (client.readyState === WebSocket.OPEN) {
+          client.send(data);
+        }
+      });
+      break;
+    
+    case "UPDATE_BOOK":
+      data = JSON.stringify({ type: "UPDATE_BOOK", payload });
+
+      console.log("Broadcasting database update book data to client:", payload.name, payload.id );
+      clients.forEach((client) => {
+        if (client.readyState === WebSocket.OPEN) {
+          client.send(data);
+        }
+      });
+      break;
     case "NEW_USER":
       data = JSON.stringify({ type: "NEW_USER", payload });
 
-      console.log("Broadcasting database data to client:", data.substring(0, 15) );
+      console.log("Broadcasting database new user data to client:", payload.name, payload.id );
+      clients.forEach((client) => {
+        if (client.readyState === WebSocket.OPEN) {
+          client.send(data);
+        }
+      });
+      break;
+    
+    case "UPDATE_USER":
+      data = JSON.stringify({ type: "UPDATE_USER", payload });
+
+      console.log("Broadcasting database update user data to client:", payload.name, payload.id );
       clients.forEach((client) => {
         if (client.readyState === WebSocket.OPEN) {
           client.send(data);
@@ -70,7 +103,7 @@ app.post("/data", (req, res) => {
     case "NEW_AUTHOR":
       data = JSON.stringify({ type: "NEW_AUTHOR", payload });
 
-      console.log("Broadcasting database data to client:", data.substring(0, 15) );
+      console.log("Broadcasting database new author date to client:", payload.name, payload.id );
       clients.forEach((client) => {
         if (client.readyState === WebSocket.OPEN) {
           client.send(data);
@@ -79,9 +112,9 @@ app.post("/data", (req, res) => {
       break;
     case "UPDATE_AUTHOR":
       idx= idx+1;
-      data = JSON.stringify({ id: idx,type: "UPDATE_AUTHOR", payload });
+      data = JSON.stringify({ id: idx,type: "UPDATE_AUTHOR", payload});
 
-      console.log("Broadcasting database data to client:", data.substring(0, 100) );
+      console.log("Broadcasting database update author data to client:", payload.name, payload.id  );
       clients.forEach((client) => {
         if (client.readyState === WebSocket.OPEN) {
           client.send(data);
