@@ -79,6 +79,18 @@ app.post("/data", (req, res) => {
         }
       });
       break;
+    
+    case "DELETE_BOOK":
+      data = JSON.stringify({ type: "DELETE_BOOK", payload });
+
+      console.log("Broadcasting database delete book data to client:", payload.name, payload.id );
+      clients.forEach((client) => {
+        if (client.readyState === WebSocket.OPEN) {
+          client.send(data);
+        }
+      });
+      break;
+
     case "NEW_USER":
       data = JSON.stringify({ type: "NEW_USER", payload });
 
@@ -100,10 +112,21 @@ app.post("/data", (req, res) => {
         }
       });
       break;
+    
+    case "DELETE_USER":
+      data = JSON.stringify({ type: "DELETE_USER", payload });
+
+      console.log("Broadcasting database delete user data to client:", payload.name, payload.id );
+      clients.forEach((client) => {
+        if (client.readyState === WebSocket.OPEN) {
+          client.send(data);
+        }
+      });
+      break;
     case "NEW_AUTHOR":
       data = JSON.stringify({ type: "NEW_AUTHOR", payload });
 
-      console.log("Broadcasting database new author date to client:", payload.name, payload.id );
+      console.log("Broadcasting database new author data to client:", payload.name, payload.id );
       clients.forEach((client) => {
         if (client.readyState === WebSocket.OPEN) {
           client.send(data);
@@ -122,6 +145,27 @@ app.post("/data", (req, res) => {
       });
     // default:
       break;
+    case "DELETE_AUTHOR":
+      data = JSON.stringify({ type: "DELETE_AUTHOR", payload });
+
+      console.log("Broadcasting database delete author data to client:", payload.name, payload.id );
+      clients.forEach((client) => {
+        if (client.readyState === WebSocket.OPEN) {
+          client.send(data);
+        }
+      });
+      break;
+    default:
+      data = JSON.stringify({ type: "REFRESH", payload });
+
+      console.log("Broadcasting database delete author data to client:", payload.name, payload.id );
+      clients.forEach((client) => {
+        if (client.readyState === WebSocket.OPEN) {
+          client.send(data);
+        }
+      });
+      break;
+
   }
 
   // clients.forEach((client) => {
