@@ -1,0 +1,697 @@
+"use client"
+import React, {useEffect, useState} from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { AlertCircle, CheckCircle } from "lucide-react"; // InfoIcon, CloudUploadIcon as UploadIcon
+
+import {
+  useDisplayBooksQuery,
+  bookApi
+} from "@/app/redux/slices/book/bookApi";
+import { RootState, AppDispatch } from "@/app/redux/store";
+import type { UsersSession } from '@/app/drizzle/auth/core/session';
+import { useForm } from '@/app/assets/hooks/useForm';
+import { useFormData } from "@/app/assets/hooks/useFormData";
+import { useNumber } from '@/app/assets/hooks/useNumber';
+
+import ModalFooter from "../modal/footer";
+import { AllData, create, PartialUpdate, SendToSocket } from "../../utils/actions"; // type SocketData
+import { ObjAny } from "@/app/redux/slices/userSlice";
+import NumberInput from "@/app/assets/components/NumberInput";
+import { BookProps } from "./book";
+
+export interface UserProps extends UsersSession {
+  admin: string,
+  address: string,
+  accountNumber: string,
+  bankName: string,
+  aboutAuthor: string,
+  accountName: string,
+  bank?: {
+    number: string,
+    bankName: string,
+    accountName: string,
+    otherBank: string,
+  },
+  phone: string,
+  vendorType: string
+  otherBank?: string
+
+   name: string;
+    action?: string;
+    role: 'user' | 'author' | 'admin';
+    id: string;
+    _id?: string;
+
+    isbn: string;
+    authorName: string;
+    password: string;
+    confirmPassword: string;
+}
+
+export function renderError(message: string | boolean, validating: boolean) {
+      return message ? (
+        <div
+                    className={`flex items-start gap-2 text-sm mt-1 transition-all duration-300 ease-out 
+                      ${message ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2 pointer-events-none'}
+                      text-[#721c24]`}
+                  >
+                    <AlertCircle size={16} />
+                    <p>{message}</p>
+                  </div>
+      ) : validating && (
+        <div className="flex items-start gap-2 text-sm mt-1 text-[#155724] transition-all duration-300 ease-out opacity-100 translate-y-0">
+          <CheckCircle size={16} />
+          <p>Looks good!</p>
+        </div>
+      )
+    }
+
+function User({user }: { user: Partial<UserProps> } ) {
+    const inpVendorTypeRef = React.useRef<HTMLSelectElement>(null),
+          inpBankNameRef = React.useRef<HTMLSelectElement>(null),
+          inpNameRef = React.useRef<HTMLInputElement>(null),
+          inpEmailRef = React.useRef<HTMLInputElement>(null),
+          inpAboutAuthorRef = React.useRef<HTMLTextAreaElement>(null),
+          inpStatusRef = React.useRef<HTMLSelectElement>(null),
+          inpAccountNameRef = React.useRef<HTMLInputElement>(null),
+          inpAccountNumberRef = React.useRef<HTMLInputElement>(null),
+          inpOtherBankRef = React.useRef<HTMLInputElement>(null),
+          inpAddressRef = React.useRef<HTMLTextAreaElement>(null);
+
+          
+
+    // const SOCKET_ENV = 'nat';
+    const SOCKET_ENV = 'local';
+    const { data: bookData, isLoading: fetchingBook } = useDisplayBooksQuery(user.id); //refetch: refetchBooks
+    const dispatch = useDispatch();
+    const appDispatch = useDispatch<AppDispatch>();
+    const { number, autoSelected, setAutoSelected, selectedCountry, setSelectedCountry, setPhoneNumber  } = useNumber(); //({phone: user.phone}) // phoneError, phoneValidating,
+    const { open } = useSelector((state: RootState) => state.route.miniModal);
+    const [ editing, setEditing ] = React.useState(false);
+
+    
+  const [ formData, handleFinish ] = useFormData<Partial<UserProps>>({}) //??
+
+    const { formValues: form, handleChange: setForm, disabled, setDisabled, submitValidation, error, validating, handleValidate, setFormValues } = useForm<Partial<UserProps>>({
+    // status: user.status || '',
+    // name: '',
+    // email: user.email,
+    // aboutAuthor: '',
+    // bankName: '',
+    // accountName: '',
+    // accountNumber: '',
+    // id: user.id,
+    // vendorType: "null",
+    // address: user.address || ""
+  }) 
+  function logRefs() {
+    console.log({
+            inpVendorTypeRef: inpVendorTypeRef.current && inpVendorTypeRef.current?.value,
+            inpBankNameRef: inpBankNameRef.current && inpBankNameRef.current?.value,
+            inpNameRef: inpBankNameRef.current && inpBankNameRef.current?.value,
+            inpEmailRef: inpBankNameRef.current && inpBankNameRef.current?.value,
+            inpAboutAuthorRef: inpBankNameRef.current && inpBankNameRef.current?.value,
+            inpStatusRef: inpBankNameRef.current && inpBankNameRef.current?.value,
+            inpAccountNameRef: inpBankNameRef.current && inpBankNameRef.current?.value,
+            inpAccountNumberRef: inpBankNameRef.current && inpBankNameRef.current?.value,
+            inpOtherBankRef: inpBankNameRef.current && inpBankNameRef.current?.value,
+            inpAddressRef: inpBankNameRef.current && inpBankNameRef.current?.value,
+          })
+  }
+
+  const useHasMounted = () => { 
+          const [hasMounted, setHasMounted] = useState(false); 
+  
+          useEffect(() => {
+              setHasMounted(true)
+              // const socket = new WebSocket("wss://rhsocket-production.up.railway.app"); // Replace with your [SECURED] WebSocket URL
+              const socket = new WebSocket("ws://localhost:3001/data"); // Replace with your [INSECURED] Local WebSocket URL
+              
+              console.log("user.tsx socket.OPEN::: ",socket.OPEN)
+
+              const dispatchBook = (data: AllData ) => appDispatch(
+                              bookApi.util.updateQueryData(
+                              'displayBooks',
+                              user.id,        // your actual args
+                              (draftArray) => {
+                                  const draft = draftArray.data, newData = data;
+                                  
+                                  console.log({ drafted: JSON.parse(JSON.stringify(draftArray)), payload: newData })
+                                  const idx = draft.findIndex( (a: ObjAny ) => a.userId === newData.userId)
+                                  if (idx !== -1) draft[idx] = newData
+                                  else draft.unshift(newData)
+                                  console.log("Updated array " + newData.bookTitle)
+                              }
+                              )
+                          )
+  
+              socket.onmessage = (event) => {
+                  const data = JSON.parse(event.data);
+  
+                  switch (data.type) {
+                      case "NEW_BOOK":
+                          console.log("NEW_BOOK",data)
+                          break;
+                      case "UPDATE_BOOK":
+                          dispatchBook(data.payload)
+                          break;
+                  }
+              };
+          
+              return () => socket.close();
+          }, [])
+
+          useEffect(() => {
+            // refetchBooks()
+            setHasMounted(true);
+
+          }, []);
+      
+          return hasMounted;
+  };
+  const hasMounted = useHasMounted();
+  if (!hasMounted) return null;
+
+  function renderAuthorStatusInfo(status: string){
+    switch(status){
+      case "active":
+        return "Author on full access";
+      case "disabled":
+        return "Author can't login";
+      default:        
+        return "User activity is limited";
+
+    }
+  }
+   
+
+  console.log('user', {form, user, formData, error, disabled})
+
+  const handleSave = async () => {
+    // Create a new user object in MongoDB
+    setDisabled(true)
+
+    if(user.role === "user"){
+      // create new user into mongodb
+      // change the user role to author in postgress
+      const uploadData = {
+        ...user,
+        ...formData,
+        __v: undefined,
+        bankName:undefined,
+        accountName:undefined,
+        accountNumber: undefined,
+        _id: undefined,
+      }
+      delete uploadData._id;
+      delete uploadData.__v;
+      delete uploadData.accountName;
+      delete uploadData.accountNumber;
+      delete uploadData.bankName;
+
+      // change to /api/authors
+      const res = await create("/api/authors", { 
+        ...uploadData,
+        role: "author",
+        bank: {
+          accountName: form.accountName,
+          bankName: form.bankName,
+          number: form.accountNumber
+        },
+        updatedAt: Date.now
+       })
+      //  when disabling an author, change role to user in sQL, change role mongo user
+      // to see all disabled, fetch /authors/ field: role: user
+
+      if(res.success){
+      //  create() just sends post request
+        const resSqlDB = await create("/api/users/"+user.id, { 
+          role: "author"
+        })
+        if(resSqlDB){
+          console.log('resSqlDB', resSqlDB)
+          const socketDone = await SendToSocket({ server: SOCKET_ENV, url: '/data', type: "NEW_AUTHOR", data: { ...res.data} })
+          if(socketDone){
+            const updateRes = await PartialUpdate("/api/authors/"+res.data.id,  { role: "author"} )
+            
+            if(updateRes) await SendToSocket({ server: SOCKET_ENV, url: '/data', type: "DELETE_USER", data: { ...updateRes.data} })
+          }
+        }
+      }else {
+        if(res.data && (res.err === 'Author already exists') ){
+          console.log(res.err)
+          const socketDone = await SendToSocket({ server: SOCKET_ENV, url: '/data', type: "NEW_AUTHOR", data: { ...user, ...res.data} })
+          
+          if(socketDone){
+            
+             await SendToSocket({ server: SOCKET_ENV, url: '/data', type: "DELETE_USER", data: { ...res.data} })
+          }
+        }
+      }
+
+    }else{
+      
+      const res = (form.accountName || form.accountNumber || form.bankName) ? await PartialUpdate("/api/authors/"+user.id,  { 
+        ...form, 
+        bank: { 
+          bankName: form.bankName || '',
+          accountName:form.accountName || '',
+          number: form.accountNumber || ''
+        } 
+      } ) : await PartialUpdate("/api/authors/"+user.id, { ...form } )//!important
+
+      if(res){
+        // since socket uspdates the redux cache you will need full user data + formData (field changes) but onnly formData is needed for patch update to db
+        
+            // await fetch("https://rhsocket-production.up.railway.app/author", { 
+            // // await fetch("http://localhost:3001/author", { 
+            //   method: "POST",
+            //   headers: { "Content-Type": "application/json" },
+            //   body: JSON.stringify({ type: "UPDATE_AUTHOR", payload: { ...user, ...formData, status: 'active'} }), 
+            // });
+        const socketDone = await SendToSocket({ server: SOCKET_ENV, url: '/data', type: "UPDATE_AUTHOR", data: { ...user, ...res.data,  } })
+        console.log(socketDone)
+          
+      }
+      
+      
+
+        
+      // console.log(formData)
+      // after update send data to listener via the user id to redux refetch user data, or refresh the authors.tsx page
+
+    }
+  }
+
+  function renderBooks() {
+      const data: Partial<BookProps>[] = bookData ? bookData.data : [];
+  
+      
+          return fetchingBook ? <p>{'Loading '+ user.role+"\'s Books...."}</p>:(
+            <div className="bg-white border border-gray-200 p-6 cursor-pointer rounded-xl shadow-md">
+              <h3 className="text-lg font-semibold mb-6">Books</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                  { data.length > 0 ? data.map((book, index: number) => (
+                    <div
+                        key={index}
+                        className="relative group overflow-hidden rounded-xl h-64 bg-gray-100"
+                    >
+                        {/* animated background image */}
+                        <div
+                        className="absolute inset-0 bg-cover bg-center transform transition-transform duration-500 ease-out group-hover:scale-110 group-hover:rotate-3"
+                        style={{ backgroundImage: user.role === "user" ? `url(${'/1.jpg'})` : `url('/roving.png')`, backgroundSize: 'contain', backgroundPosition: 'center' }}
+                        />
+  
+                        {/* semi-transparent overlay */}
+                        <div className="absolute inset-0 bg-black bg-opacity-30" />
+  
+                        {/* card content */}
+                        <div 
+                            onClick={() =>{
+                              // e.stopPropagation();
+                              dispatch({
+                                  type: "route/setMiniModal",
+                                  payload: {
+                                  open: !open,
+                                  component: "Book",
+                                  data: {  ...book, ...user},
+                                  title: `Editing ${book.bookTitle}`,
+                                  },
+                              })
+                            }}
+                            className="relative z-10 flex flex-col justify-between h-full p-4">
+                           
+                                <p className="text-white font-medium text-lg">{book.bookTitle && book.bookTitle.toUpperCase()}</p>
+                                <p className="text-white text-sm opacity-90 mb-4">{book.description}</p>
+                            
+                        </div>
+                    </div>
+                  )) : null }
+  
+                  {/* Add New Book card */}
+                  <div 
+                          onClick={() =>{
+                            // e.stopPropagation();
+                            dispatch({
+                                type: "route/setMiniModal",
+                                payload: {
+                                open: !open,
+                                component: "Book",
+                                data: user,
+                                title: `Add New Book`,
+                                },
+                            })
+  
+                          }
+                          }
+                    className="flex items-center justify-center border-2 border-dashed border-gray-300 rounded-xl h-48 cursor-pointer hover:border-gray-400 transition">
+                  <p className="text-gray-400 font-semibold">+ Add a New Book</p>
+                  </div>
+              </div>
+            </div>
+          )
+  
+      
+    }
+
+  return (
+    <>
+      <div className="w-full min-h-screen p-6 md:p-10 lg:p-16 space-y-10">
+        {/* Header */}
+        <div className={`bg-gradient-to-r 
+          ${user.role === 'admin' ? 'from-cyan-400 to-teal-400': ( user.status === 'inactive' ? 'from-gray-400 to-gray-200' : 'from-green-400 to-green-900')} 
+          rounded-2xl p-6 text-gray-600 relative`
+          }
+          onClick={() => logRefs()}
+          >
+          <div className="absolute -bottom-6 left-6 w-20 h-20 bg-white rounded-full overflow-hidden border-4 border-white">
+            <img src="/1.jpg" alt="User Avatar" className="w-full h-full object-cover" />
+          </div>
+          <div className="ml-28">
+            <h2 className="text-xl font-bold">{user.name}</h2>
+            <p className="text-sm">{user.email}</p>
+            <p className="text-sm font-semibold">{user.role === 'admin' ? "ADMIN" : user.role?.toLocaleUpperCase()}</p>
+          </div>
+        </div>
+
+        {/* Sections */}
+        <div className="grid grid-cols-1 sm:grid-cols-1 md:grid-cols-1 lg:grid-cols-2 gap-6">
+
+          {/* Profile Information */}
+          <div className="col-span-1 bg-white border border-gray-200 p-6 rounded-xl shadow-md">
+            <h3 className="text-lg font-semibold mb-4">Profile Information</h3>
+            <div className="text-sm text-gray-600 mb-4 flex row-auto ">
+              <strong className='min-w-[8rem]'>About the Author:</strong>
+                <textarea
+                    name="aboutAuthor"
+                    // value={form.aboutAuthor}
+                    ref={inpAboutAuthorRef}
+                    defaultValue={user.aboutAuthor}
+                    onChange={(e) => setForm(e)}
+                    onFocus={() => { handleValidate(true); submitValidation()}}
+                    onBlur={() => handleValidate(false)}
+                    placeholder={ user.aboutAuthor ||  "Tell us a little bit about yourself.."}
+                    className={` w-[100%] min-h-[3rem] px-2 py-1 rounded 
+                      transition-all duration-300 ${error.aboutAuthor ? 'border-[#dc3545] bg-[#f8d7da]' : ( validating ? 'border-[#d4edda] bg-[#d4edda]' : 'bg-gray-50' ) }
+                        overflow-y-auto
+                        [-ms-overflow-style:none]
+                        [scrollbar-width:none]
+                        [&::-webkit-scrollbar]:hidden max-h-[5rem] pointer-events-auto`}
+                    rows={2}
+                />
+            </div>
+              <div className="ml-[8rem]">{renderError(error.aboutAuthor, validating)}</div>
+            <div className="text-sm text-gray-600 mb-4 flex row-auto align-middle items-center justify-between">
+              <strong className='min-w-[8rem]'>Address:</strong>
+              <textarea
+                  name="address"
+                  // value={form.address}
+                  defaultValue={user.address}
+                  ref={inpAddressRef}
+                  onChange={(e) => setForm(e)}
+                  onFocus={() => setEditing(true)}
+                  onBlur={(e) => { handleFinish(e); setEditing(false)}}
+                  placeholder={`Enter your Address...`}
+                  className={`w-[100%] min-h-[1.5rem] px-2 py-1 rounded ${editing ? 'border' : 'bg-gray-50'}
+                      overflow-y-auto
+                      [-ms-overflow-style:none]
+                      [scrollbar-width:none]
+                      [&::-webkit-scrollbar]:hidden max-h-[5rem] pointer-events-auto`}
+                  rows={2}
+              />
+            </div>
+            {/* <div className="ml-[8rem]">{renderError(error.address, validating)}</div> */}
+            <ul className="text-sm text-gray-700 space-y-4">
+
+              <li key="1" className="flex row-auto align-middle items-center">
+                <strong className='min-w-[8rem]'>Full Name:</strong> 
+                <input
+                  type="text"
+                  name="name"
+                  // value={form.name}
+                  defaultValue={user.name}
+                  ref={inpNameRef}
+                  onChange={(e) => setForm(e)}
+                  onFocus={() => { handleValidate(true); submitValidation()}}
+                  onBlur={() => handleValidate(false)}
+                  placeholder={user.name || "Enter your full name"}
+                  className={`w-full focus:border-none
+                    ${error.name ? 'border-[#dc3545] bg-[#f8d7da]' : ( validating ? 'border-[#d4edda] bg-[#d4edda]' : '')}
+                    px-2 py-1 rounded hover:cursor-pointer`}
+                />
+              </li>
+              <li key="err_name" className="ml-[8rem]">{renderError(error.name, validating)}</li>
+
+              <li key="01" className="flex align-middle items-center justify-between">
+                <strong className='lg:min-w-[8rem] md:min-w-[5rem]'>Mobile:</strong> 
+                <span className={`w-[80%] hover:cursor-pointer `}
+                  
+                  onFocus={() => { handleValidate(true); submitValidation()}}
+
+                  onBlur={() => {
+                    // setFormData((prevState) => { return {...prevState, phone: number }; }) 
+                    // submitValidation()
+                    handleValidate(false)
+                  } }
+                ><NumberInput
+                    handleValidate={handleValidate}
+                    autoSelected={autoSelected}
+                    setAutoSelected={setAutoSelected}
+                    selectedCountry={selectedCountry}
+                    setSelectedCountry={setSelectedCountry}
+                    phoneNumber={number}
+                    setPhoneNumber={setPhoneNumber}
+                    setForm={setForm}
+                    submitValidation={submitValidation}
+                    setFormValues={setFormValues}
+                    initialState={user.phone || ''}
+                    validating={validating}
+                    error={error.phone}
+                  />
+                </span>
+              </li>
+              <li key="err_phone" className="ml-[8rem]">{renderError(error.phone, validating)}</li>
+
+              <li className="flex row-auto align-middle items-center justify-between">
+                <strong className='min-w-[8rem]'>Email:</strong> 
+                <input
+                  type="email"
+                  name="email"
+                  // value={form.email}
+                  defaultValue={user.email}
+                  ref={inpEmailRef}
+                  onChange={(e) => setForm(e)}
+                  onFocus={() => setEditing(true)}
+                  onBlur={(e) => { handleFinish(e); setEditing(false)}}
+                  placeholder="Example@email.com"
+                  className={`w-[80%] ${editing ? 'border' : ''} px-2 py-1 rounded hover:cursor-pointer bg-slate-50`}
+                />
+              </li>
+
+              <li className="flex row-auto align-middle items-center justify-between">
+                <strong className='min-w-[8rem]'>Social Accounts:</strong> <span className="w-[80%] text-cyan-500">@admin_mich</span>
+              </li>
+              <li key="vendorType" className="flex row-auto align-middle items-center justify-left">
+              <strong className='min-w-[8rem]'>Vendor Type</strong>
+                <select
+                    name="vendorType"
+                    // value={form.vendorType}
+                    ref={inpVendorTypeRef}
+                    defaultValue={user.vendorType}
+                    onChange={(e) => setForm(e)}
+                    onFocus={() => { handleValidate(true); submitValidation()}}
+                    onBlur={() => handleValidate(false)}
+                    className={`w-[80%] 
+                    ${error.vendorType ? 'border-[#dc3545] bg-[#f8d7da]' : ( validating ? 'border-[#d4edda] bg-[#d4edda]' : '')}
+                    ${
+                      user.vendorType === 'publisher' ? 'text-blue-500' : (user.vendorType === 'self-published' ? 'text-purple-500' : 
+                        (user.vendorType === 'magazine supplier' ? 'text-orange-500' : (user.vendorType !== '' ? 'text-green-500' : 'text-gray-500' ) )
+                      )}
+                      border rounded px-2 py-1`}
+                  >
+                    <option value="null" className="text-gray-500">Select type of vendor</option>
+                    <option value="publisher" className="text-blue-500">Publisher</option>
+                    <option value="self-published" className="text-purple-500">Self-published</option>
+                    <option value="magazine supplier" className="text-orange-500">Magazine Supplier</option>
+                    <option value="non-book product supplier" className="text-green-500">Non-Book Product Supplier</option>
+                  </select>
+              </li>
+              <li key="err_vendorType" className="ml-[8rem]">{renderError(error.vendorType, validating)}</li>
+            </ul>
+          </div>
+          
+          {/* Platform Settings */}
+          <div className="col-span-1 bg-white border border-gray-200 p-6 rounded-xl shadow-md">
+            <h3 className="text-lg font-semibold mb-4">Platform Settings</h3>
+            <p className="text-sm font-medium text-gray-700 mb-2">ACCOUNT</p>
+            <ul className="space-y-3 mb-4">
+            <li key="1">
+                <input onBlur={(e) => handleFinish(e)} className="accent-green-500"  name='emailOnStatusUpdate' type="checkbox" defaultChecked /> 
+                <span className="ml-2">Email user on status update</span>
+              </li>
+              <li key="2">
+                <input onBlur={(e) => handleFinish(e)} className="accent-green-500"  name='emailOnBookSales' type="checkbox" defaultChecked /> 
+                <span className="ml-2">Email user on book sales</span>
+              </li>
+              <li key="4">
+                <select
+                  name="status"
+                  // value={form.status}
+                    ref={inpStatusRef}
+                    defaultValue={user.status}
+                  onChange={(e) => setForm(e)}
+                  onBlur={(e) => handleFinish(e)}
+                  className={`
+                    ${user.status === 'active' ? 'text-green-500' : ( user.status === 'inactive' ? 'text-gray-400': 'text-red-500') } 
+                    
+                    border rounded px-2 py-1`}
+                >
+                  <option className="text-gray-400" value="inactive">inactive</option>
+                  <option className="text-green-500" value="active">active</option>
+                  <option className="text-red-500" value="disabled">disabled</option>
+                </select>
+                <span className="ml-2 capitalize">{renderAuthorStatusInfo(form.status ? form.status : '')}</span>
+              </li>
+            </ul>
+            {/* PAYMENT INFORMATION */}
+            <h3 className="text-sm font-extrabold text-gray-700 mb-2">PAYMENT</h3>
+            <ul className="space-y-1 mb-4">
+              <li key="1" className="flex row-auto align-middle items-center justify-between">
+                <span className='min-w-[8rem]'>Account Name:</span> 
+                <input
+                  type="text"
+                  name="accountName"
+                  // value={form.accountName}
+                  defaultValue={user.bank && user.bank.accountName}
+                  ref={inpAccountNameRef}
+                  onChange={(e) => setForm(e)}
+                  onFocus={() => {setEditing(!editing); handleValidate(true); submitValidation() }}
+                  onBlur={(e) => {handleFinish(e); handleValidate(false) }}
+                  placeholder={user.accountName || "Account Name"}
+                  className={`w-[80%] ${editing ? 'border' : ''} px-2 py-1 rounded hover:cursor-pointer
+                    ${error.accountName ? 'border-[#dc3545] bg-[#f8d7da]' : ( validating ? 'border-[#d4edda] bg-[#d4edda]' : '')}
+                  `}
+                />
+              </li>
+              <li key="err_vendorType" className="ml-[8rem]">{renderError(error.accountName, validating)}</li>
+
+              <li key="4" className="flex row-auto align-middle items-center justify-between">
+                <span className="min-w-[8rem]">Bank Name:</span>
+                  <select
+                    name="bankName"
+                    // value={form.bankName}
+                    defaultValue={user.bank && user.bank.bankName || user.bankName}
+                    ref={inpBankNameRef}
+                    onChange={(e) => setForm(e)}
+                    onFocus={() => {setEditing(!editing); handleValidate(true); submitValidation() }}
+                    onBlur={(e) => {handleFinish(e); handleValidate(false) }}
+                    className={`w-full 
+                      ${user.status === 'active' ? 'text-green-500' : ( user.status === 'inactive' ? 'text-gray-700': 'text-red-500') } 
+                    ${error.bankName ? 'border-[#dc3545] bg-[#f8d7da]' : ( validating ? 'border-[#d4edda] bg-[#d4edda]' : '')}
+                      border rounded px-2 py-1`}
+                  >
+                    <option className={`${user.status === 'active' ? 'text-green-500' : ( user.status === 'inactive' ? 'text-gray-400': 'text-red-500') }`} value="">Select Bank</option>
+                    <option className={`${user.status === 'active' ? 'text-green-500' : ( user.status === 'inactive' ? 'text-gray-400': 'text-red-500') }`} value="GT Bank">GT Bank</option>
+                    <option className={`${user.status === 'active' ? 'text-green-500' : ( user.status === 'inactive' ? 'text-gray-400': 'text-red-500') }`} value="First Bank">First Bank</option>
+                    <option className={`${user.status === 'active' ? 'text-green-500' : ( user.status === 'inactive' ? 'text-gray-400': 'text-red-500') }`} value="Zenith Bank">Zenith Bank</option>
+                    <option className={`${user.status === 'active' ? 'text-green-500' : ( user.status === 'inactive' ? 'text-gray-400': 'text-red-500') }`} value="Access Bank">Access Bank</option>
+                    <option className={`${user.status === 'active' ? 'text-green-500' : ( user.status === 'inactive' ? 'text-gray-400': 'text-red-500') }`} value="Fidelity Bank">Fidelity Bank</option>
+                    <option className={`${user.status === 'active' ? 'text-green-500' : ( user.status === 'inactive' ? 'text-gray-400': 'text-red-500') }`} value="Union Bank">Union Bank</option>
+                    <option className={`${user.status === 'active' ? 'text-green-500' : ( user.status === 'inactive' ? 'text-gray-400': 'text-red-500') }`} value="UBA">UBA</option>
+                    <option className={`${user.status === 'active' ? 'text-green-500' : ( user.status === 'inactive' ? 'text-gray-400': 'text-red-500') }`} value="Wema Bank">Wema Bank</option>
+                    <option className={`${user.status === 'active' ? 'text-green-500' : ( user.status === 'inactive' ? 'text-gray-400': 'text-red-500') }`} value="Polaris Bank">Polaris Bank</option>
+                    <option className={`${user.status === 'active' ? 'text-green-500' : ( user.status === 'inactive' ? 'text-gray-400': 'text-red-500') }`} value="Stanbic IBTC Bank">Stanbic IBTC Bank</option>
+                    <option className={`${user.status === 'active' ? 'text-green-500' : ( user.status === 'inactive' ? 'text-gray-400': 'text-red-500') }`} value="Ecobank">Ecobank</option>
+                    <option className={`${user.status === 'active' ? 'text-green-500' : ( user.status === 'inactive' ? 'text-gray-400': 'text-red-500') }`} value="Heritage Bank">Heritage Bank</option>
+                    <option className={`${user.status === 'active' ? 'text-green-500' : ( user.status === 'inactive' ? 'text-gray-400': 'text-red-500') }`} value="Keystone Bank">Keystone Bank</option>
+                    <option className={`${user.status === 'active' ? 'text-green-500' : ( user.status === 'inactive' ? 'text-gray-400': 'text-red-500') }`} value="Standard Chartered Bank">Standard Chartered Bank</option>
+                    <option className={`${user.status === 'active' ? 'text-green-500' : ( user.status === 'inactive' ? 'text-gray-400': 'text-red-500') }`} value="Citibank Nigeria">Citibank Nigeria</option>
+                    <option className={`${user.status === 'active' ? 'text-green-500' : ( user.status === 'inactive' ? 'text-gray-400': 'text-red-500') }`} value="Jaiz Bank">Jaiz Bank</option>
+                    <option className={`${user.status === 'active' ? 'text-green-500' : ( user.status === 'inactive' ? 'text-gray-400': 'text-red-500') }`} value="SunTrust Bank">SunTrust Bank</option>
+                    <option className={`${user.status === 'active' ? 'text-green-500' : ( user.status === 'inactive' ? 'text-gray-400': 'text-red-500') }`} value="FSDH Merchant Bank">FSDH Merchant Bank</option>
+                    <option className={`${user.status === 'active' ? 'text-green-500' : ( user.status === 'inactive' ? 'text-gray-400': 'text-red-500') }`} value="Sterling Bank">Sterling Bank</option>
+                    <option className={`${user.status === 'active' ? 'text-green-500' : ( user.status === 'inactive' ? 'text-gray-400': 'text-red-500') }`} value="Unity Bank">Unity Bank</option>
+                    <option className={`${user.status === 'active' ? 'text-green-500' : ( user.status === 'inactive' ? 'text-gray-400': 'text-red-500') }`} value="Opay">OPay</option>
+                    <option className={`${user.status === 'active' ? 'text-green-500' : ( user.status === 'inactive' ? 'text-gray-400': 'text-red-500') }`} value="Moniepoint">Moniepoint</option>
+                    <option className={`${user.status === 'active' ? 'text-green-500' : ( user.status === 'inactive' ? 'text-gray-400': 'text-red-500') }`} value="PalmPay">Palmpay</option>
+                    <option className={`${user.status === 'active' ? 'text-green-500' : ( user.status === 'inactive' ? 'text-gray-400': 'text-red-500') }`} value="Kuda Bank">Kuda Bank</option>
+                    <option className={`${user.status === 'active' ? 'text-green-500' : ( user.status === 'inactive' ? 'text-gray-400': 'text-red-500') }`} value="Other">Other</option>
+                  </select>
+              </li>
+              {/* <li key="err_bankName" className="ml-[8rem]">{renderError(error.bankName, validating)}</li> */}
+
+            <li key="5li" className={`${form.bankName === "Other" ? 'visible max-h-[full]' : 'invisible max-h-0'} flex row-auto align-middle items-center justify-between`}>
+                
+                <span className="min-w-[8rem]"></span>
+                 <input 
+                  type="text"
+                  name="otherBank"
+                  // value={formData.otherBank}
+                  defaultValue={user.bank && user.bank.otherBank || user.otherBank}
+                  ref={inpOtherBankRef}
+                  onChange={(e) => { handleFinish(e); setForm(e)}}
+                  onFocus={() => {setEditing(!editing); handleValidate(true); submitValidation() }}
+                  onBlur={(e) => {handleFinish(e); handleValidate(false) }}
+                  placeholder={user.otherBank || "Input other Bank Name"}
+                  className={`w-[80%] ${editing ? 'border' : ''} ${form.accountNumber && form.accountNumber ? '' : 'border-red-400' }
+                    ${error.otherBank ? 'border-[#dc3545] bg-[#f8d7da]' : ( validating ? 'border-[#d4edda] bg-[#d4edda]' : '')}
+                   px-2 py-1 rounded hover:cursor-pointer`}
+              /></li>
+              <li key="err_otherbank" className="ml-[8rem]">{form.bankName && form.bankName === "Other" ? renderError(error.otherBank, validating) : renderError(error.otherBank, validating)}</li>
+
+              <li className="flex row-auto align-middle items-center justify-between">
+                  <span className="min-w-[8rem]">Account Number:</span>
+                  <input
+                    type="text"
+                    name="accountNumber"
+                    inputMode="numeric" 
+                    pattern="[0-9]*"
+                    // value={form.accountNumber}
+                    defaultValue={user.bank && user.bank.number || user.accountNumber}
+                    ref={inpAccountNumberRef}
+                    onFocus={() => {setEditing(!editing); handleValidate(true); submitValidation() }}
+                    onBlur={(e) => {handleFinish(e); handleValidate(false) }}
+                    onChange={(e) => setForm(e)}
+                    placeholder="e.g. 0083374474"
+                    className={`mt-1 w-full border px-2 py-1 rounded 
+                    ${error.accountNumber ? 'border-[#dc3545] bg-[#f8d7da]' : ( validating ? 'border-[#d4edda] bg-[#d4edda]' : '')}`}
+                  />
+              </li>
+              <li key="err_accountNumber" className="ml-[8rem]">{renderError(error.accountNumber, validating)}</li>
+            </ul>
+          </div>
+
+          {/* Notifications */}
+          <div className="col-span-1 lg:col-span-2 bg-white border border-gray-200 p-6 rounded-xl shadow-md">
+            <h3 className="text-lg font-semibold mb-4">Notificationstions</h3>
+            <ul className="space-y-4 hidden">
+              {[
+                { name: "Admin M", message: "Hi! I need more information..." },
+                { name: "Admin M", message: "Awesome work, can you change..." },
+                { name: "Admin M", message: "Have a great afternoon..." },
+                { name: "Admin M", message: "About files I can..." },
+              ].map((chat, index) => (
+                <li key={index} className="flex justify-between items-center">
+                  <div>
+                    <p className="font-medium">{chat.name}</p>
+                    <p className="text-sm text-gray-500">{chat.message}</p>
+                  </div>
+                  <button className="text-cyan-600 text-sm font-medium">REPLY</button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+
+        {/* Book Section */}
+        {renderBooks()}
+
+
+        
+      </div>
+      <ModalFooter disabled={disabled} saveLabel="save user" onSave={() => handleSave()} />
+    </>
+  );
+}
+
+export default User;

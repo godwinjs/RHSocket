@@ -1,0 +1,102 @@
+// // import Link from "next/link";
+// import React, { FC } from "react";
+// import { useRouter } from "next/navigation";
+
+// // import { useDisplayProductsQuery } from "@/app/redux/features/product/productApi";
+
+// import twFocusClass from "@/app/assets/utils/twFocusClass";
+
+// type CustomLink = {href:string; label: string};
+// export interface PaginationProps {
+//   className?: string;
+// //   PaginationData?: CustomLink[];
+//   page: number;
+// }
+
+// const Pagination: FC<PaginationProps> = ({ className = "", page, reduxData }) => {
+//   const router = useRouter();
+// //   const { data: productData } = useDisplayProductsQuery({
+// //     page: 0,
+// //     limit: 0,
+// //   });
+
+//   const totalData = reduxData?.data.length || 0;
+//   const totalPages = Math.ceil(totalData / 8);
+
+//   const generatePagination = (): CustomLink[] => {
+//     const pages: CustomLink[] = [];
+
+//     for (let i = 1; i <= totalPages; i++) {
+//       if (pages.length < 3 || i === totalPages) {
+//         pages.push({ label: `${i}`, href: `${i}` });
+//       } else if (!pages.find(p => p.label === "...")) {
+//         pages.push({ label: "...", href: "..." });
+//       }
+//     }
+
+//     return pages;
+//   };
+
+//   const renderItem = (pag: CustomLink, index: number) => {
+//     if (pag.label === "...") {
+//       return (
+//         <span
+//           key={index}
+//           className={`inline-flex w-11 h-11 items-center justify-center rounded-full bg-white hover:bg-neutral-100 border border-neutral-200 text-neutral-6000 dark:text-neutral-400 dark:bg-neutral-900 dark:hover:bg-neutral-800 dark:border-neutral-700 ${twFocusClass()}`}
+//         >
+//           {pag.label}
+//         </span>
+//       );
+//     }
+
+//     const pageNum = Number(pag.label);
+//     const isActive = page === pageNum;
+
+//     return isActive ? (
+//       <span
+//         key={index}
+//         className={`inline-flex w-11 h-11 items-center justify-center rounded-full bg-primary-6000 text-white ${twFocusClass()}`}
+//       >
+//         {pag.label}
+//       </span>
+//     ) : (
+//       <div
+//         key={index}
+//         className={`cursor-pointer inline-flex w-11 h-11 items-center justify-center rounded-full bg-white hover:bg-neutral-100 border border-neutral-200 text-neutral-6000 dark:text-neutral-400 dark:bg-neutral-900 dark:hover:bg-neutral-800 dark:border-neutral-700 ${twFocusClass()}`}
+//         onClick={() => router.replace(pag.href)}
+//       >
+//         {pag.label}
+//       </div>
+//     );
+//   };
+
+//   const handlePageChange = (newPage: number) => {
+//     if (newPage >= 1 && newPage <= totalPages) {
+//       router.replace(`${newPage}`);
+//     }
+//   };
+
+//   return (
+//     <nav className={`nc-Pagination inline-flex space-x-1 text-base font-medium ${className}`}>
+//       <div
+//         key={'back'}
+//         className={`cursor-pointer inline-flex w-11 h-11 items-center justify-center rounded-full hover:bg-neutral-100 border border-neutral-200 text-neutral-6000 dark:text-neutral-400 dark:bg-neutral-900 dark:hover:bg-neutral-800 dark:border-neutral-700 ${twFocusClass()}`}
+//         onClick={() => handlePageChange(page - 1)}
+//       >
+//         {'<'}
+//       </div>
+
+//       {generatePagination().map(renderItem)}
+
+//       <div
+//         key={'forward'}
+//         className={`cursor-pointer inline-flex w-11 h-11 items-center justify-center rounded-full hover:bg-neutral-100 border border-neutral-200 text-neutral-6000 dark:text-neutral-400 dark:bg-neutral-900 dark:hover:bg-neutral-800 dark:border-neutral-700 ${twFocusClass()}`}
+//         onClick={() => handlePageChange(page + 1)}
+//       >
+//         {'>'}
+//       </div>
+//     </nav>
+//   );
+// };
+
+// export default Pagination;

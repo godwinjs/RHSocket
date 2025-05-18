@@ -20,15 +20,18 @@ wss.on("connection", (ws) => {
   });
 });
 
+let index = 0;
+
 app.post("/message", (req, res) => {
   const { payload, type } = req.body;
   let data;
 
   switch (type) {
     case "SEND_MAIL":
+      index= index+1;
       data = JSON.stringify({ type: "SEND_MAIL", payload });
 
-      console.log("Sending email data to client:", data.substring(0, 15) );
+      console.log(index+":::Sending email data to client:", data.substring(0, 15) );
       clients.forEach((client) => {
         if (client.readyState === WebSocket.OPEN) {
           client.send(data);
@@ -59,9 +62,10 @@ app.post("/data", (req, res) => {
   switch (type) {
     
     case "NEW_BOOK":
+      idx= idx+1;
       data = JSON.stringify({ type: "NEW_BOOK", payload });
 
-      console.log("Broadcasting database new book data to client:", payload.name, payload.id );
+      console.log(dx+":::Broadcasting database new book data to client:", payload.name, payload.id );
       clients.forEach((client) => {
         if (client.readyState === WebSocket.OPEN) {
           client.send(data);
@@ -70,9 +74,10 @@ app.post("/data", (req, res) => {
       break;
     
     case "UPDATE_BOOK":
+      idx= idx+1;
       data = JSON.stringify({ type: "UPDATE_BOOK", payload });
 
-      console.log("Broadcasting database update book data to client:", payload.name, payload.id );
+      console.log(idx+":::Broadcasting database update book data to client:", payload.name, payload.id );
       clients.forEach((client) => {
         if (client.readyState === WebSocket.OPEN) {
           client.send(data);
@@ -81,9 +86,10 @@ app.post("/data", (req, res) => {
       break;
     
     case "DELETE_BOOK":
+      idx= idx+1;
       data = JSON.stringify({ type: "DELETE_BOOK", payload });
 
-      console.log("Broadcasting database delete book data to client:", payload.name, payload.id );
+      console.log(idx+":::Broadcasting database delete book data to client:", payload.name, payload.id );
       clients.forEach((client) => {
         if (client.readyState === WebSocket.OPEN) {
           client.send(data);
@@ -92,9 +98,10 @@ app.post("/data", (req, res) => {
       break;
 
     case "NEW_USER":
+      idx= idx+1;
       data = JSON.stringify({ type: "NEW_USER", payload });
 
-      console.log("Broadcasting database new user data to client:", payload.name, payload.id );
+      console.log(idx+":::Broadcasting database new user data to client:", payload.name, payload.id );
       clients.forEach((client) => {
         if (client.readyState === WebSocket.OPEN) {
           client.send(data);
@@ -103,9 +110,10 @@ app.post("/data", (req, res) => {
       break;
     
     case "UPDATE_USER":
+      idx= idx+1;
       data = JSON.stringify({ type: "UPDATE_USER", payload });
 
-      console.log("Broadcasting database update user data to client:", payload.name, payload.id );
+      console.log(idx+":::Broadcasting database update user data to client:", payload.name, payload.id );
       clients.forEach((client) => {
         if (client.readyState === WebSocket.OPEN) {
           client.send(data);
@@ -114,9 +122,10 @@ app.post("/data", (req, res) => {
       break;
     
     case "DELETE_USER":
+      idx= idx+1;
       data = JSON.stringify({ type: "DELETE_USER", payload });
 
-      console.log("Broadcasting database delete user data to client:", payload.name, payload.id );
+      console.log(idx+":::Broadcasting database delete user data to client:", payload.name, payload.id );
       clients.forEach((client) => {
         if (client.readyState === WebSocket.OPEN) {
           client.send(data);
@@ -124,9 +133,10 @@ app.post("/data", (req, res) => {
       });
       break;
     case "NEW_AUTHOR":
+      idx= idx+1;
       data = JSON.stringify({ type: "NEW_AUTHOR", payload });
 
-      console.log("Broadcasting database new author data to client:", payload.name, payload.id );
+      console.log(idx+":::Broadcasting database new author data to client:", payload.name, payload.id );
       clients.forEach((client) => {
         if (client.readyState === WebSocket.OPEN) {
           client.send(data);
@@ -137,7 +147,7 @@ app.post("/data", (req, res) => {
       idx= idx+1;
       data = JSON.stringify({ id: idx,type: "UPDATE_AUTHOR", payload});
 
-      console.log("Broadcasting database update author data to client:", payload.name, payload.id  );
+      console.log(idx+":::Broadcasting database update author data to client:", payload.name, payload.id  );
       clients.forEach((client) => {
         if (client.readyState === WebSocket.OPEN) {
           client.send(data);
@@ -146,9 +156,10 @@ app.post("/data", (req, res) => {
     // default:
       break;
     case "DELETE_AUTHOR":
+      idx= idx+1;
       data = JSON.stringify({ type: "DELETE_AUTHOR", payload });
 
-      console.log("Broadcasting database delete author data to client:", payload.name, payload.id );
+      console.log(idx+":::Broadcasting database delete author data to client:", payload.name, payload.id );
       clients.forEach((client) => {
         if (client.readyState === WebSocket.OPEN) {
           client.send(data);
@@ -156,9 +167,10 @@ app.post("/data", (req, res) => {
       });
       break;
     default:
+      idx= idx+1;
       data = JSON.stringify({ type: "REFRESH", payload });
 
-      console.log("Broadcasting database delete author data to client:", payload.name, payload.id );
+      console.log(idx+":::Broadcasting database delete author data to client:", payload.name, payload.id );
       clients.forEach((client) => {
         if (client.readyState === WebSocket.OPEN) {
           client.send(data);
